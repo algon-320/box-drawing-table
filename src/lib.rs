@@ -115,6 +115,54 @@ impl Table {
     pub fn append_row(&mut self, row: Row) {
         self.rows.push(row);
     }
+
+    fn fill(&self, c: char, width: usize) -> Vec<char> {
+        vec![c; width]
+    }
+
+    fn get_border_char(
+        &self,
+        row_idx: usize,
+        col_idx: usize,
+        horizontal: Option<Border>,
+        vertical: Option<Border>,
+    ) -> char {
+        if horizontal.is_none() {
+            '│'
+        } else if vertical.is_none() {
+            '─'
+        } else {
+            let mut bitmap = 0;
+            if row_idx > 0 {
+                bitmap |= 0b0001;
+            }
+            if row_idx + 1 < self.rows.len() {
+                bitmap |= 0b0100;
+            }
+            if col_idx > 0 {
+                bitmap |= 0b1000;
+            }
+            if col_idx + 1 < self.cols.len() {
+                bitmap |= 0b0010;
+            }
+            match bitmap {
+                0b0110 => '┌',
+                0b1110 => '┬',
+                0b1100 => '┐',
+                0b0111 => '├',
+                0b1111 => '┼',
+                0b1101 => '┤',
+                0b0011 => '└',
+                0b1011 => '┴',
+                0b1001 => '┘',
+                0b0010 => '─',
+                0b1000 => '─',
+                0b0001 => '│',
+                0b0100 => '│',
+                _ => unreachable!(),
+            }
+        }
+    }
 }
 
 impl std::fmt::Display for Table {
@@ -153,15 +201,8 @@ impl std::fmt::Display for Table {
             match row {
                 Row::HorizontalBorder(_) => {
                     for (ci, col) in self.cols.iter().enumerate() {
-                        let c = get_border_char(
-                            ri,
-                            self.rows.len(),
-                            ci,
-                            self.cols.len(),
-                            row.border(),
-                            col.border(),
-                        );
-                        buf.extend_from_slice(&fill(c, widths[ci]));
+                        let c = self.get_border_char(ri, ci, row.border(), col.border());
+                        buf.extend_from_slice(&self.fill(c, widths[ci]));
                     }
                 }
                 Row::FixedHeight { cells, .. } | Row::FlexibleHeight(cells) => {
@@ -169,21 +210,14 @@ impl std::fmt::Display for Table {
                     for (ci, col) in self.cols.iter().enumerate() {
                         match col {
                             Column::VerticalBorder(_) => {
-                                let c = get_border_char(
-                                    ri,
-                                    self.rows.len(),
-                                    ci,
-                                    self.cols.len(),
-                                    row.border(),
-                                    col.border(),
-                                );
-                                buf.extend_from_slice(&fill(c, widths[ci]));
+                                let c = self.get_border_char(ri, ci, row.border(), col.border());
+                                buf.extend_from_slice(&self.fill(c, widths[ci]));
                             }
                             _ => {
                                 let cell: Vec<_> = cells
                                     .get(cell_idx)
                                     .map(|cell| cell.value.chars().collect())
-                                    .unwrap_or_else(|| fill(' ', widths[ci]));
+                                    .unwrap_or_else(|| self.fill(' ', widths[ci]));
                                 buf.extend_from_slice(&cell);
                                 cell_idx += 1;
                             }

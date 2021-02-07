@@ -64,7 +64,7 @@ impl<T: std::fmt::Display> From<T> for Cell {
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum Border {
     Single,
-    Bold,
+    Heavy,
     Double,
     // TODO
 }
@@ -134,9 +134,17 @@ impl Table {
         vertical: Option<Border>,
     ) -> &str {
         if horizontal.is_none() {
-            "│"
+            match vertical.unwrap() {
+                Border::Single => "│",
+                Border::Heavy => "┃",
+                Border::Double => "║",
+            }
         } else if vertical.is_none() {
-            "─"
+            match horizontal.unwrap() {
+                Border::Single => "─",
+                Border::Heavy => "━",
+                Border::Double => "═",
+            }
         } else {
             let mut bitmap = 0;
             if row_idx > 0 {
@@ -152,19 +160,77 @@ impl Table {
                 bitmap |= 0b0010;
             }
             match bitmap {
-                0b0110 => "┌",
-                0b1110 => "┬",
-                0b1100 => "┐",
-                0b0111 => "├",
-                0b1111 => "┼",
-                0b1101 => "┤",
-                0b0011 => "└",
-                0b1011 => "┴",
-                0b1001 => "┘",
-                0b0010 => "─",
-                0b1000 => "─",
-                0b0001 => "│",
-                0b0100 => "│",
+                0b0110 => match (horizontal.unwrap(), vertical.unwrap()) {
+                    (Border::Single, Border::Single) => "┌",
+                    (Border::Heavy, Border::Heavy) => "┏",
+                    (Border::Double, Border::Double) => "╔",
+                    (Border::Single, Border::Heavy) => "┎",
+                    (Border::Single, Border::Double) => "╓",
+                    (Border::Heavy, Border::Single) => "┍",
+                    (Border::Heavy, Border::Double) => "╓",
+                    (Border::Double, Border::Single) => "╒",
+                    (Border::Double, Border::Heavy) => "╒",
+                },
+                0b1110 => match (horizontal.unwrap(), vertical.unwrap()) {
+                    (Border::Single, Border::Single) => "┬",
+                    (Border::Heavy, Border::Heavy) => "┳",
+                    (Border::Double, Border::Double) => "╦",
+                    _ => todo!(),
+                },
+                0b1100 => match (horizontal.unwrap(), vertical.unwrap()) {
+                    (Border::Single, Border::Single) => "┐",
+                    (Border::Heavy, Border::Heavy) => "┓",
+                    (Border::Double, Border::Double) => "╗",
+                    _ => todo!(),
+                },
+                0b0111 => match (horizontal.unwrap(), vertical.unwrap()) {
+                    (Border::Single, Border::Single) => "├",
+                    (Border::Heavy, Border::Heavy) => "┣",
+                    (Border::Double, Border::Double) => "╠",
+                    _ => todo!(),
+                },
+                0b1111 => match (horizontal.unwrap(), vertical.unwrap()) {
+                    (Border::Single, Border::Single) => "┼",
+                    (Border::Heavy, Border::Heavy) => "╋",
+                    (Border::Double, Border::Double) => "╬",
+                    _ => todo!(),
+                },
+                0b1101 => match (horizontal.unwrap(), vertical.unwrap()) {
+                    (Border::Single, Border::Single) => "┤",
+                    (Border::Heavy, Border::Heavy) => "┫",
+                    (Border::Double, Border::Double) => "╣",
+                    _ => todo!(),
+                },
+                0b0011 => match (horizontal.unwrap(), vertical.unwrap()) {
+                    (Border::Single, Border::Single) => "└",
+                    (Border::Heavy, Border::Heavy) => "┗",
+                    (Border::Double, Border::Double) => "╚",
+                    _ => todo!(),
+                },
+                0b1011 => match (horizontal.unwrap(), vertical.unwrap()) {
+                    (Border::Single, Border::Single) => "┴",
+                    (Border::Heavy, Border::Heavy) => "┻",
+                    (Border::Double, Border::Double) => "╩",
+                    _ => todo!(),
+                },
+                0b1001 => match (horizontal.unwrap(), vertical.unwrap()) {
+                    (Border::Single, Border::Single) => "┘",
+                    (Border::Heavy, Border::Heavy) => "┛",
+                    (Border::Double, Border::Double) => "╝",
+                    _ => todo!(),
+                },
+                0b0010 | 0b1000 => match (horizontal.unwrap(), vertical.unwrap()) {
+                    (Border::Single, Border::Single) => "─",
+                    (Border::Heavy, Border::Heavy) => "━",
+                    (Border::Double, Border::Double) => "═",
+                    _ => todo!(),
+                },
+                0b0001 | 0b0100 => match (horizontal.unwrap(), vertical.unwrap()) {
+                    (Border::Single, Border::Single) => "│",
+                    (Border::Heavy, Border::Heavy) => "┃",
+                    (Border::Double, Border::Double) => "║",
+                    _ => todo!(),
+                },
                 _ => unreachable!(),
             }
         }
@@ -467,6 +533,38 @@ mod tests {
 │abc │  │
 │    │  │
 └────┴──┘
+"#
+        .to_owned();
+        assert_eq!(table.to_string(), expected);
+    }
+    #[test]
+    fn test_border() {
+        let mut table = Table::new(vec![
+            Border::Double.into(),
+            Column::FixedWidth(4),
+            Border::Double.into(),
+            Column::FixedWidth(2),
+            Border::Double.into(),
+        ]);
+        table.append_row(Border::Double.into());
+        table.append_row(Row::FixedHeight {
+            height: 3,
+            cells: vec!["あい".into(), "うえお".into()],
+        });
+        table.append_row(Border::Double.into());
+        table.append_row(Row::FixedHeight {
+            height: 2,
+            cells: vec!["abc".into()],
+        });
+        table.append_row(Border::Double.into());
+        let expected = r#"╔════╦══╗
+║あい║う║
+║    ║え║
+║    ║お║
+╠════╬══╣
+║abc ║  ║
+║    ║  ║
+╚════╩══╝
 "#
         .to_owned();
         assert_eq!(table.to_string(), expected);

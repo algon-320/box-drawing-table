@@ -180,7 +180,10 @@ impl std::fmt::Display for Table {
                                 buf.extend_from_slice(&fill(c, widths[ci]));
                             }
                             _ => {
-                                let cell: Vec<_> = cells[cell_idx].value.chars().collect();
+                                let cell: Vec<_> = cells
+                                    .get(cell_idx)
+                                    .map(|cell| cell.value.chars().collect())
+                                    .unwrap_or_else(|| fill(' ', widths[ci]));
                                 buf.extend_from_slice(&cell);
                                 cell_idx += 1;
                             }
@@ -225,6 +228,7 @@ fn get_border_char(
         if col_idx + 1 < cols {
             bitmap |= 0b0010;
         }
+        dbg!(bitmap);
         match bitmap {
             0b0110 => '┌',
             0b1110 => '┬',
@@ -235,6 +239,10 @@ fn get_border_char(
             0b0011 => '└',
             0b1011 => '┴',
             0b1001 => '┘',
+            0b0010 => '─',
+            0b1000 => '─',
+            0b0001 => '│',
+            0b0100 => '│',
             _ => unreachable!(),
         }
     }
@@ -245,7 +253,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_no_cells_1() {
+    fn test_no_cells() {
         let mut table = Table::new(vec![
             Column::VerticalBorder(Border::Single),
             Column::VerticalBorder(Border::Single),
@@ -257,10 +265,33 @@ mod tests {
 "#
         .to_owned();
         assert_eq!(table.to_string(), expected);
+
+        let mut table = Table::new(vec![
+            Column::VerticalBorder(Border::Single),
+            Column::VerticalBorder(Border::Single),
+        ]);
+        table.append_row(Row::HorizontalBorder(Border::Single));
+        let expected = r#"──
+"#
+        .to_owned();
+        assert_eq!(table.to_string(), expected);
+
+        let mut table = Table::new(vec![
+            Column::VerticalBorder(Border::Single),
+            Column::VerticalBorder(Border::Single),
+        ]);
+        table.append_row(Row::FixedHeight {
+            height: 1,
+            cells: vec![],
+        });
+        let expected = r#"││
+"#
+        .to_owned();
+        assert_eq!(table.to_string(), expected);
     }
 
     #[test]
-    fn test_no_cells_2() {
+    fn test_empty_cell() {
         let mut table = Table::new(vec![
             Column::VerticalBorder(Border::Single),
             Column::FixedWidth(3),
@@ -304,6 +335,45 @@ mod tests {
 ├───┼───┤
 │def│456│
 └───┴───┘
+"#
+        .to_owned();
+        assert_eq!(table.to_string(), expected);
+    }
+
+    #[test]
+    fn test_lacking_cell() {
+        let mut table = Table::new(vec![
+            Column::VerticalBorder(Border::Single),
+            Column::FixedWidth(5),
+            Column::VerticalBorder(Border::Single),
+            Column::FixedWidth(5),
+            Column::VerticalBorder(Border::Single),
+            Column::FixedWidth(5),
+            Column::VerticalBorder(Border::Single),
+        ]);
+        table.append_row(Row::HorizontalBorder(Border::Single));
+        table.append_row(Row::FixedHeight {
+            height: 1,
+            cells: vec!["(1,1)".into()],
+        });
+        table.append_row(Row::HorizontalBorder(Border::Single));
+        table.append_row(Row::FixedHeight {
+            height: 1,
+            cells: vec!["(2,1)".into(), "(2,2)".into()],
+        });
+        table.append_row(Row::HorizontalBorder(Border::Single));
+        table.append_row(Row::FixedHeight {
+            height: 1,
+            cells: vec!["(3,1)".into(), "(3,2)".into(), "(3,3)".into()],
+        });
+        table.append_row(Row::HorizontalBorder(Border::Single));
+        let expected = r#"┌─────┬─────┬─────┐
+│(1,1)│     │     │
+├─────┼─────┼─────┤
+│(2,1)│(2,2)│     │
+├─────┼─────┼─────┤
+│(3,1)│(3,2)│(3,3)│
+└─────┴─────┴─────┘
 "#
         .to_owned();
         assert_eq!(table.to_string(), expected);

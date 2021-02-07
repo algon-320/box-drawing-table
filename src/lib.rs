@@ -230,8 +230,10 @@ impl std::fmt::Display for Table {
                                 }
                             }
                             _ => {
-                                let opts = textwrap::Options::new(widths[ci])
-                                    .splitter(textwrap::NoHyphenation);
+                                let opts = textwrap::Options::with_splitter(
+                                    widths[ci],
+                                    textwrap::NoHyphenation,
+                                );
                                 let wrapped = textwrap::wrap(
                                     &cells
                                         .get(cell_idx)
@@ -307,6 +309,28 @@ mod tests {
         table.append_row(Border::Single.into());
         let expected = r#"┌───┬───┐
 ├───┼───┤
+└───┴───┘
+"#
+        .to_owned();
+        assert_eq!(table.to_string(), expected);
+
+        let mut table = Table::new(vec![
+            Border::Single.into(),
+            Column::FixedWidth(3),
+            Border::Single.into(),
+            Column::FixedWidth(3),
+            Border::Single.into(),
+        ]);
+        table.append_row(Border::Single.into());
+        table.append_row(Row::FixedHeight {
+            height: 3,
+            cells: vec![],
+        });
+        table.append_row(Border::Single.into());
+        let expected = r#"┌───┬───┐
+│   │   │
+│   │   │
+│   │   │
 └───┴───┘
 "#
         .to_owned();
@@ -388,6 +412,8 @@ mod tests {
             Border::Single.into(),
             Column::FixedWidth(5),
             Border::Single.into(),
+            Column::FixedWidth(1),
+            Border::Single.into(),
         ]);
         table.append_row(Border::Single.into());
         table.append_row(Row::FixedHeight {
@@ -397,17 +423,50 @@ mod tests {
         table.append_row(Border::Single.into());
         table.append_row(Row::FixedHeight {
             height: 3,
+            cells: vec!["abc".into(), "xy".into()],
+        });
+        table.append_row(Border::Single.into());
+        let expected = r#"┌─────┬─┐
+│abcde│ │
+│fgh  │ │
+├─────┼─┤
+│abc  │x│
+│     │y│
+│     │ │
+└─────┴─┘
+"#
+        .to_owned();
+        assert_eq!(table.to_string(), expected);
+    }
+
+    #[test]
+    fn test_cjk() {
+        let mut table = Table::new(vec![
+            Border::Single.into(),
+            Column::FixedWidth(4),
+            Border::Single.into(),
+            Column::FixedWidth(2),
+            Border::Single.into(),
+        ]);
+        table.append_row(Border::Single.into());
+        table.append_row(Row::FixedHeight {
+            height: 3,
+            cells: vec!["あい".into(), "うえお".into()],
+        });
+        table.append_row(Border::Single.into());
+        table.append_row(Row::FixedHeight {
+            height: 2,
             cells: vec!["abc".into()],
         });
         table.append_row(Border::Single.into());
-        let expected = r#"┌─────┐
-│abcde│
-│fgh  │
-├─────┤
-│abc  │
-│     │
-│     │
-└─────┘
+        let expected = r#"┌────┬──┐
+│あい│う│
+│    │え│
+│    │お│
+├────┼──┤
+│abc │  │
+│    │  │
+└────┴──┘
 "#
         .to_owned();
         assert_eq!(table.to_string(), expected);

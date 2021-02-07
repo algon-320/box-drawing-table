@@ -126,21 +126,17 @@ impl Table {
         self.rows.push(row);
     }
 
-    fn fill(&self, c: char, width: usize) -> Vec<char> {
-        vec![c; width]
-    }
-
-    fn get_border_char(
+    fn get_border(
         &self,
         row_idx: usize,
         col_idx: usize,
         horizontal: Option<Border>,
         vertical: Option<Border>,
-    ) -> char {
+    ) -> &str {
         if horizontal.is_none() {
-            '│'
+            "│"
         } else if vertical.is_none() {
-            '─'
+            "─"
         } else {
             let mut bitmap = 0;
             if row_idx > 0 {
@@ -156,27 +152,33 @@ impl Table {
                 bitmap |= 0b0010;
             }
             match bitmap {
-                0b0110 => '┌',
-                0b1110 => '┬',
-                0b1100 => '┐',
-                0b0111 => '├',
-                0b1111 => '┼',
-                0b1101 => '┤',
-                0b0011 => '└',
-                0b1011 => '┴',
-                0b1001 => '┘',
-                0b0010 => '─',
-                0b1000 => '─',
-                0b0001 => '│',
-                0b0100 => '│',
+                0b0110 => "┌",
+                0b1110 => "┬",
+                0b1100 => "┐",
+                0b0111 => "├",
+                0b1111 => "┼",
+                0b1101 => "┤",
+                0b0011 => "└",
+                0b1011 => "┴",
+                0b1001 => "┘",
+                0b0010 => "─",
+                0b1000 => "─",
+                0b0001 => "│",
+                0b0100 => "│",
                 _ => unreachable!(),
             }
         }
     }
 }
 
+fn fill(c: &str, width: usize) -> String {
+    c.repeat(width)
+}
+
 impl std::fmt::Display for Table {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use unicode_width::UnicodeWidthStr;
+
         // 1. calculate each column width.
         let widths: Vec<usize> = self
             .cols
@@ -192,7 +194,7 @@ impl std::fmt::Display for Table {
             .collect();
 
         // 2. calculate each row height.
-        let _heights: Vec<usize> = self
+        let heights: Vec<usize> = self
             .rows
             .iter()
             .map(|row| match row {
@@ -207,36 +209,52 @@ impl std::fmt::Display for Table {
 
         // 3. render the table from top-left to bottom-right.
         for (ri, row) in self.rows.iter().enumerate() {
-            let mut buf = Vec::new();
             match row {
                 Row::HorizontalBorder(_) => {
                     for (ci, col) in self.cols.iter().enumerate() {
-                        let c = self.get_border_char(ri, ci, row.border(), col.border());
-                        buf.extend_from_slice(&self.fill(c, widths[ci]));
+                        let c = self.get_border(ri, ci, row.border(), col.border());
+                        write!(f, "{}", fill(c, widths[ci]))?;
                     }
+                    writeln!(f)?;
                 }
                 Row::FixedHeight { cells, .. } | Row::FlexibleHeight(cells) => {
+                    let height = heights[ri];
+                    let mut lines = vec![String::new(); height];
                     let mut cell_idx = 0;
                     for (ci, col) in self.cols.iter().enumerate() {
                         match col {
                             Column::VerticalBorder(_) => {
-                                let c = self.get_border_char(ri, ci, row.border(), col.border());
-                                buf.extend_from_slice(&self.fill(c, widths[ci]));
+                                let c = self.get_border(ri, ci, row.border(), col.border());
+                                for line in lines.iter_mut() {
+                                    line.push_str(&fill(c, widths[ci]));
+                                }
                             }
                             _ => {
-                                let cell: Vec<_> = cells
-                                    .get(cell_idx)
-                                    .map(|cell| cell.value.chars().collect())
-                                    .unwrap_or_else(|| self.fill(' ', widths[ci]));
-                                buf.extend_from_slice(&cell);
+                                let opts = textwrap::Options::new(widths[ci])
+                                    .splitter(textwrap::NoHyphenation);
+                                let wrapped = textwrap::wrap(
+                                    &cells
+                                        .get(cell_idx)
+                                        .map(|cell| cell.value.as_str())
+                                        .unwrap_or(""),
+                                    opts,
+                                )
+                                .into_iter()
+                                .chain(std::iter::repeat(std::borrow::Cow::Borrowed("")));
+                                for (line, w) in lines.iter_mut().zip(wrapped) {
+                                    line.push_str(w.as_ref());
+                                    let sz = w.as_ref().width();
+                                    line.push_str(&fill(" ", widths[ci] - sz));
+                                }
                                 cell_idx += 1;
                             }
                         }
                     }
+                    for line in lines {
+                        writeln!(f, "{}", line)?;
+                    }
                 }
             }
-            let line: String = buf.iter().collect();
-            writeln!(f, "{}", line)?;
         }
         Ok(())
     }
@@ -359,6 +377,37 @@ mod tests {
 ├─────┼─────┼─────┤
 │(3,1)│(3,2)│(3,3)│
 └─────┴─────┴─────┘
+"#
+        .to_owned();
+        assert_eq!(table.to_string(), expected);
+    }
+
+    #[test]
+    fn test_wrapping() {
+        let mut table = Table::new(vec![
+            Border::Single.into(),
+            Column::FixedWidth(5),
+            Border::Single.into(),
+        ]);
+        table.append_row(Border::Single.into());
+        table.append_row(Row::FixedHeight {
+            height: 2,
+            cells: vec!["abcdefgh".into()],
+        });
+        table.append_row(Border::Single.into());
+        table.append_row(Row::FixedHeight {
+            height: 3,
+            cells: vec!["abc".into()],
+        });
+        table.append_row(Border::Single.into());
+        let expected = r#"┌─────┐
+│abcde│
+│fgh  │
+├─────┤
+│abc  │
+│     │
+│     │
+└─────┘
 "#
         .to_owned();
         assert_eq!(table.to_string(), expected);

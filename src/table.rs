@@ -234,28 +234,36 @@ impl std::fmt::Display for Table {
                             // maximum width of all columns
                             cells
                                 .iter()
-                                .map(|actual| actual.width)
+                                .filter_map(|actual| match &actual.content {
+                                    ActualContent::Text(text) => Some(text.len()),
+                                    _ => None,
+                                })
                                 .fold(1, std::cmp::max)
                         }
                         CellSize::Fixed(h) => *h,
                     };
 
                     let mut lines = vec![String::new(); height];
-                    for (ci, actual) in cells.into_iter().enumerate() {
+                    for actual in cells {
                         match actual.content {
                             ActualContent::Text(text) => {
                                 let text =
                                     text.into_iter().chain(std::iter::repeat(Cow::Borrowed("")));
                                 for (buf, w) in lines.iter_mut().zip(text) {
-                                    // TODO: apply the style
-                                    buf.push_str(w.as_ref());
+                                    buf.push_str(&actual.style.paint(w.as_ref()).to_string());
                                     let sz = w.as_ref().width();
-                                    buf.push_str(&fill(" ", widths[ci] - sz)); // TODO: follow the alignment
+                                    buf.push_str(&fill(" ", actual.width - sz));
+                                    // TODO: follow the alignment
                                 }
                             }
                             ActualContent::Border(border) => {
                                 for buf in lines.iter_mut() {
-                                    buf.push_str(&fill(&border, widths[ci]));
+                                    buf.push_str(
+                                        &actual
+                                            .style
+                                            .paint(fill(&border, actual.width))
+                                            .to_string(),
+                                    );
                                 }
                             }
                         }

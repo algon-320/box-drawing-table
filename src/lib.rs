@@ -23,7 +23,7 @@ impl Align {
 }
 impl std::default::Default for Align {
     fn default() -> Self {
-        Align::Center
+        Align::Left
     }
 }
 

@@ -150,7 +150,7 @@ impl std::fmt::Display for Table {
                                     .filter_map(|row| {
                                         row.cells().and_then(|cells| cells.get(cell_idx))
                                     })
-                                    .map(|cell| cell.value.width())
+                                    .map(|cell| cell.value.width() + cell.align.padded_amount())
                                     .fold(1 /* defualt width*/, std::cmp::max);
                                 ws.push(max_width);
                             }
@@ -181,7 +181,8 @@ impl std::fmt::Display for Table {
                     }
                     struct ActualCell<'a> {
                         width: usize,
-                        style: Cow<'a, ansi_term::Style>,
+                        align: Align,
+                        style: ansi_term::Style,
                         content: ActualContent<'a>,
                     }
 
@@ -194,23 +195,25 @@ impl std::fmt::Display for Table {
                                     Some(cell) => {
                                         let width = widths[ci];
                                         let wrap_opts = textwrap::Options::with_splitter(
-                                            width,
+                                            width - cell.align.padded_amount(),
                                             textwrap::NoHyphenation,
                                         );
                                         buf.push(ActualCell {
-                                            width,
+                                            width: width + cell.align.padded_amount(),
+                                            align: cell.align,
+                                            style: cell.style.clone(),
                                             content: ActualContent::Text(textwrap::wrap(
                                                 cell.value.as_str(),
                                                 wrap_opts,
                                             )),
-                                            style: Cow::Borrowed(&cell.style),
                                         });
                                     }
                                     None => {
                                         // empty cell
                                         buf.push(ActualCell {
                                             width: widths[ci],
-                                            style: Cow::Owned(ansi_term::Style::default()),
+                                            align: Align::default(),
+                                            style: ansi_term::Style::default(),
                                             content: ActualContent::Text(Vec::new()),
                                         });
                                     }
@@ -218,9 +221,11 @@ impl std::fmt::Display for Table {
                                 Column::VerticalBorder(b) => {
                                     let border_str = self.get_border(ri, ci, None, Some(*b));
                                     let repeated = fill(border_str, widths[ci]);
+                                    let align = Align::default();
                                     buf.push(ActualCell {
-                                        width: widths[ci],
-                                        style: Cow::Owned(ansi_term::Style::default()),
+                                        width: widths[ci] + align.padded_amount(),
+                                        align: Align::default(),
+                                        style: ansi_term::Style::default(),
                                         content: ActualContent::Border(repeated),
                                     });
                                 }
@@ -250,10 +255,22 @@ impl std::fmt::Display for Table {
                                 let text =
                                     text.into_iter().chain(std::iter::repeat(Cow::Borrowed("")));
                                 for (buf, w) in lines.iter_mut().zip(text) {
-                                    buf.push_str(&actual.style.paint(w.as_ref()).to_string());
                                     let sz = w.as_ref().width();
-                                    buf.push_str(&fill(" ", actual.width - sz));
-                                    // TODO: follow the alignment
+                                    let pad = actual.width - actual.align.padded_amount() - sz;
+                                    let (padl, padr) = match actual.align {
+                                        Align::Center => (pad / 2, pad - pad / 2),
+                                        Align::Left => (0, pad),
+                                        Align::Right => (pad, 0),
+                                        Align::CenterPadded { padl, padr } => {
+                                            (padl + (pad - padl - padr), padr)
+                                        }
+                                        Align::LeftPadded { padl } => (padl, pad - padl),
+                                        Align::RightPadded { padr } => (pad - padr, padr),
+                                    };
+                                    assert_eq!(pad, padl + padr);
+                                    buf.push_str(&fill(" ", padl));
+                                    buf.push_str(&actual.style.paint(w.as_ref()).to_string());
+                                    buf.push_str(&fill(" ", padr));
                                 }
                             }
                             ActualContent::Border(border) => {

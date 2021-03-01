@@ -9,6 +9,18 @@ pub enum Align {
     Right,
     RightPadded { padr: usize },
 }
+impl Align {
+    pub fn padded_amount(&self) -> usize {
+        match self {
+            Self::Center => 0,
+            Self::Left => 0,
+            Self::Right => 0,
+            Self::CenterPadded { padl, padr } => padl + padr,
+            Self::LeftPadded { padl } => *padl,
+            Self::RightPadded { padr } => *padr,
+        }
+    }
+}
 impl std::default::Default for Align {
     fn default() -> Self {
         Align::Center

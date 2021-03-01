@@ -184,9 +184,9 @@ fn test_wrapping() {
     table.append_row(Border::Single.into());
     let expected = r#"┌─────┬─┐
 │abcde│ │
-│fgh  │ │
+│ fgh │ │
 ├─────┼─┤
-│abc  │x│
+│ abc │x│
 │     │y│
 │     │ │
 └─────┴─┘

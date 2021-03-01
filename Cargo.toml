@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 unicode-width = "0.1.8"
 textwrap = "0.13.2"
+ansi_term = "0.12.1"

@@ -201,7 +201,7 @@ impl std::fmt::Display for Table {
                                         buf.push(ActualCell {
                                             width: width + cell.align.padded_amount(),
                                             align: cell.align,
-                                            style: cell.style.clone(),
+                                            style: cell.style,
                                             content: ActualContent::Text(textwrap::wrap(
                                                 cell.value.as_str(),
                                                 wrap_opts,

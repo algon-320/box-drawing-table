@@ -1,5 +1,7 @@
 # Box-drawing Table
 
+![demo.png](screenshots/example01.png)
+
 TODO: add docs and examples
 
 ## Features (TODO)

@@ -19,10 +19,7 @@ fn test_no_cells() {
     assert_eq!(table.to_string(), expected);
 
     let mut table = Table::new(vec![Border::Single.into(), Border::Single.into()]);
-    table.append_row(Row::Cells {
-        height: CellSize::Fixed(1),
-        cells: vec![],
-    });
+    table.append_row(Row::fixed_height(1, vec![]));
     let expected = r#"││
 "#
     .to_owned();
@@ -33,13 +30,9 @@ fn test_no_cells() {
 fn test_empty_cell() {
     let mut table = Table::new(vec![
         Border::Single.into(),
-        Column::Cells {
-            width: CellSize::Fixed(3),
-        },
+        Column::fixed_width(3),
         Border::Single.into(),
-        Column::Cells {
-            width: CellSize::Fixed(3),
-        },
+        Column::fixed_width(3),
         Border::Single.into(),
     ]);
     table.append_row(Border::Single.into());
@@ -54,20 +47,13 @@ fn test_empty_cell() {
 
     let mut table = Table::new(vec![
         Border::Single.into(),
-        Column::Cells {
-            width: CellSize::Fixed(3),
-        },
+        Column::fixed_width(3),
         Border::Single.into(),
-        Column::Cells {
-            width: CellSize::Fixed(3),
-        },
+        Column::fixed_width(3),
         Border::Single.into(),
     ]);
     table.append_row(Border::Single.into());
-    table.append_row(Row::Cells {
-        height: CellSize::Fixed(3),
-        cells: vec![],
-    });
+    table.append_row(Row::fixed_height(3, Vec::new()));
     table.append_row(Border::Single.into());
     let expected = r#"┌───┬───┐
 │   │   │
@@ -83,25 +69,21 @@ fn test_empty_cell() {
 fn test_fixed_size_cell() {
     let mut table = Table::new(vec![
         Border::Single.into(),
-        Column::Cells {
-            width: CellSize::Fixed(3),
-        },
+        Column::fixed_width(3),
         Border::Single.into(),
-        Column::Cells {
-            width: CellSize::Fixed(3),
-        },
+        Column::fixed_width(3),
         Border::Single.into(),
     ]);
     table.append_row(Border::Single.into());
-    table.append_row(Row::Cells {
-        height: CellSize::Fixed(1),
-        cells: vec!["abc".into(), "123".into()],
-    });
+    table.append_row(Row::fixed_height(
+        1,
+        vec![Cell::left("abc"), Cell::left("123")],
+    ));
     table.append_row(Border::Single.into());
-    table.append_row(Row::Cells {
-        height: CellSize::Fixed(1),
-        cells: vec!["def".into(), "456".into()],
-    });
+    table.append_row(Row::fixed_height(
+        1,
+        vec![Cell::left("def"), Cell::left("456")],
+    ));
     table.append_row(Border::Single.into());
     let expected = r#"┌───┬───┐
 │abc│123│
@@ -117,34 +99,29 @@ fn test_fixed_size_cell() {
 fn test_lacking_cell() {
     let mut table = Table::new(vec![
         Border::Single.into(),
-        Column::Cells {
-            width: CellSize::Fixed(5),
-        },
+        Column::fixed_width(5),
         Border::Single.into(),
-        Column::Cells {
-            width: CellSize::Fixed(5),
-        },
+        Column::fixed_width(5),
         Border::Single.into(),
-        Column::Cells {
-            width: CellSize::Fixed(5),
-        },
+        Column::fixed_width(5),
         Border::Single.into(),
     ]);
     table.append_row(Border::Single.into());
-    table.append_row(Row::Cells {
-        height: CellSize::Fixed(1),
-        cells: vec!["(1,1)".into()],
-    });
+    table.append_row(Row::fixed_height(1, vec![Cell::left("(1,1)")]));
     table.append_row(Border::Single.into());
-    table.append_row(Row::Cells {
-        height: CellSize::Fixed(1),
-        cells: vec!["(2,1)".into(), "(2,2)".into()],
-    });
+    table.append_row(Row::fixed_height(
+        1,
+        vec![Cell::left("(2,1)"), Cell::left("(2,2)")],
+    ));
     table.append_row(Border::Single.into());
-    table.append_row(Row::Cells {
-        height: CellSize::Fixed(1),
-        cells: vec!["(3,1)".into(), "(3,2)".into(), "(3,3)".into()],
-    });
+    table.append_row(Row::fixed_height(
+        1,
+        vec![
+            Cell::left("(3,1)"),
+            Cell::left("(3,2)"),
+            Cell::left("(3,3)"),
+        ],
+    ));
     table.append_row(Border::Single.into());
     let expected = r#"┌─────┬─────┬─────┐
 │(1,1)│     │     │
@@ -162,25 +139,18 @@ fn test_lacking_cell() {
 fn test_wrapping() {
     let mut table = Table::new(vec![
         Border::Single.into(),
-        Column::Cells {
-            width: CellSize::Fixed(5),
-        },
+        Column::fixed_width(5),
         Border::Single.into(),
-        Column::Cells {
-            width: CellSize::Fixed(1),
-        },
+        Column::fixed_width(1),
         Border::Single.into(),
     ]);
     table.append_row(Border::Single.into());
-    table.append_row(Row::Cells {
-        height: CellSize::Fixed(2),
-        cells: vec!["abcdefgh".into()],
-    });
+    table.append_row(Row::fixed_height(2, vec![Cell::left("abcdefgh")]));
     table.append_row(Border::Single.into());
-    table.append_row(Row::Cells {
-        height: CellSize::Fixed(3),
-        cells: vec!["abc".into(), "xy".into()],
-    });
+    table.append_row(Row::fixed_height(
+        3,
+        vec![Cell::left("abc"), Cell::left("xy")],
+    ));
     table.append_row(Border::Single.into());
     let expected = r#"┌─────┬─┐
 │abcde│ │
@@ -199,25 +169,18 @@ fn test_wrapping() {
 fn test_cjk() {
     let mut table = Table::new(vec![
         Border::Single.into(),
-        Column::Cells {
-            width: CellSize::Fixed(4),
-        },
+        Column::fixed_width(4),
         Border::Single.into(),
-        Column::Cells {
-            width: CellSize::Fixed(2),
-        },
+        Column::fixed_width(2),
         Border::Single.into(),
     ]);
     table.append_row(Border::Single.into());
-    table.append_row(Row::Cells {
-        height: CellSize::Fixed(3),
-        cells: vec!["あい".into(), "うえお".into()],
-    });
+    table.append_row(Row::fixed_height(
+        3,
+        vec![Cell::left("あい"), Cell::left("うえお")],
+    ));
     table.append_row(Border::Single.into());
-    table.append_row(Row::Cells {
-        height: CellSize::Fixed(2),
-        cells: vec!["abc".into()],
-    });
+    table.append_row(Row::fixed_height(2, vec![Cell::left("abc")]));
     table.append_row(Border::Single.into());
     let expected = r#"┌────┬──┐
 │あい│う│
@@ -236,25 +199,21 @@ fn test_cjk() {
 fn test_combine_border() {
     let mut table = Table::new(vec![
         Border::Single.into(),
-        Column::Cells {
-            width: CellSize::Fixed(3),
-        },
+        Column::fixed_width(3),
         Border::Double.into(),
-        Column::Cells {
-            width: CellSize::Fixed(3),
-        },
+        Column::fixed_width(3),
         Border::Single.into(),
     ]);
     table.append_row(Border::Double.into());
-    table.append_row(Row::Cells {
-        height: CellSize::Fixed(1),
-        cells: vec!["abc".into(), "123".into()],
-    });
+    table.append_row(Row::fixed_height(
+        1,
+        vec![Cell::left("abc"), Cell::left("123")],
+    ));
     table.append_row(Border::Single.into());
-    table.append_row(Row::Cells {
-        height: CellSize::Fixed(1),
-        cells: vec!["def".into(), "456".into()],
-    });
+    table.append_row(Row::fixed_height(
+        1,
+        vec![Cell::left("def"), Cell::left("456")],
+    ));
     table.append_row(Border::Double.into());
     let expected = r#"╒═══╦═══╕
 │abc║123│

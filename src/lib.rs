@@ -33,12 +33,51 @@ pub struct Cell {
     pub align: Align,
     pub style: ansi_term::Style,
 }
-impl<T: std::fmt::Display> From<T> for Cell {
-    fn from(val: T) -> Self {
+
+use ansi_term::Style;
+impl Cell {
+    pub fn left<T: std::fmt::Display>(val: T) -> Self {
         Cell {
             value: val.to_string(),
-            align: Align::default(),
-            style: ansi_term::Style::default(),
+            align: Align::Left,
+            style: Style::default(),
+        }
+    }
+    pub fn left_with_style<T: std::fmt::Display>(val: T, style: Style) -> Self {
+        Cell {
+            value: val.to_string(),
+            align: Align::Left,
+            style,
+        }
+    }
+
+    pub fn right<T: std::fmt::Display>(val: T) -> Self {
+        Cell {
+            value: val.to_string(),
+            align: Align::Right,
+            style: Style::default(),
+        }
+    }
+    pub fn right_with_style<T: std::fmt::Display>(val: T, style: Style) -> Self {
+        Cell {
+            value: val.to_string(),
+            align: Align::Right,
+            style,
+        }
+    }
+
+    pub fn center<T: std::fmt::Display>(val: T) -> Self {
+        Cell {
+            value: val.to_string(),
+            align: Align::Center,
+            style: Style::default(),
+        }
+    }
+    pub fn center_with_style<T: std::fmt::Display>(val: T, style: Style) -> Self {
+        Cell {
+            value: val.to_string(),
+            align: Align::Center,
+            style,
         }
     }
 }
@@ -61,13 +100,26 @@ pub enum Row {
     Cells { height: CellSize, cells: Vec<Cell> },
 }
 impl Row {
-    fn border(&self) -> Option<Border> {
+    pub fn flexible_height(cells: Vec<Cell>) -> Self {
+        Self::Cells {
+            height: CellSize::Flexible,
+            cells,
+        }
+    }
+    pub fn fixed_height(height: usize, cells: Vec<Cell>) -> Self {
+        Self::Cells {
+            height: CellSize::Fixed(height),
+            cells,
+        }
+    }
+
+    pub fn border(&self) -> Option<Border> {
         match self {
             Row::HorizontalBorder(b) => Some(*b),
             _ => None,
         }
     }
-    fn cells(&self) -> Option<&Vec<Cell>> {
+    pub fn cells(&self) -> Option<&Vec<Cell>> {
         match self {
             Row::Cells { cells, .. } => Some(cells),
             _ => None,
@@ -86,7 +138,18 @@ pub enum Column {
     Cells { width: CellSize },
 }
 impl Column {
-    fn border(&self) -> Option<Border> {
+    pub fn flexible_width() -> Self {
+        Self::Cells {
+            width: CellSize::Flexible,
+        }
+    }
+    pub fn fixed_width(width: usize) -> Self {
+        Self::Cells {
+            width: CellSize::Fixed(width),
+        }
+    }
+
+    pub fn border(&self) -> Option<Border> {
         match self {
             Column::VerticalBorder(b) => Some(*b),
             _ => None,

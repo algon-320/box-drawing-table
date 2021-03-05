@@ -10,7 +10,7 @@ pub enum Align {
     RightPadded { padr: usize },
 }
 impl Align {
-    pub fn padded_amount(&self) -> usize {
+    pub fn padding_size(&self) -> usize {
         match self {
             Self::Center => 0,
             Self::Left => 0,

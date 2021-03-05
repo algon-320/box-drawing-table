@@ -150,7 +150,7 @@ impl std::fmt::Display for Table {
                                     .filter_map(|row| {
                                         row.cells().and_then(|cells| cells.get(cell_idx))
                                     })
-                                    .map(|cell| cell.value.width() + cell.align.padded_amount())
+                                    .map(|cell| cell.value.width() + cell.align.padding_size())
                                     .fold(1 /* defualt width*/, std::cmp::max);
                                 ws.push(max_width);
                             }
@@ -195,11 +195,11 @@ impl std::fmt::Display for Table {
                                     Some(cell) => {
                                         let width = widths[ci];
                                         let wrap_opts = textwrap::Options::with_splitter(
-                                            width - cell.align.padded_amount(),
+                                            width - cell.align.padding_size(),
                                             textwrap::NoHyphenation,
                                         );
                                         buf.push(ActualCell {
-                                            width: width + cell.align.padded_amount(),
+                                            width: width + cell.align.padding_size(),
                                             align: cell.align,
                                             style: cell.style,
                                             content: ActualContent::Text(textwrap::wrap(
@@ -223,7 +223,7 @@ impl std::fmt::Display for Table {
                                     let repeated = fill(border_str, widths[ci]);
                                     let align = Align::default();
                                     buf.push(ActualCell {
-                                        width: widths[ci] + align.padded_amount(),
+                                        width: widths[ci] + align.padding_size(),
                                         align: Align::default(),
                                         style: ansi_term::Style::default(),
                                         content: ActualContent::Border(repeated),
@@ -256,7 +256,7 @@ impl std::fmt::Display for Table {
                                     text.into_iter().chain(std::iter::repeat(Cow::Borrowed("")));
                                 for (buf, w) in lines.iter_mut().zip(text) {
                                     let sz = w.as_ref().width();
-                                    let pad = actual.width - actual.align.padded_amount() - sz;
+                                    let pad = actual.width - actual.align.padding_size() - sz;
                                     let (padl, padr) = match actual.align {
                                         Align::Center => (pad / 2, pad - pad / 2),
                                         Align::Left => (0, pad),

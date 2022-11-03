@@ -8,6 +8,7 @@ keyword = ["unicode", "pretty-print", "table"]
 categories = ["command-line-utilities", "visualization"]
 repository = "https://github.com/algon-320/box-drawing-table"
 readme = "README.md"
+description = "Pretty print tables using box-drawing characters"
 
 [dependencies]
 unicode-width = "0.1.8"

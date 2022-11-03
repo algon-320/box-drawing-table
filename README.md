@@ -14,3 +14,7 @@ TODO: add docs and examples
     - [x] Horizontal
     - [ ] Vertical
 - [ ] Allow multiline string in a cell
+
+## License
+
+[MIT](LICENSE)
